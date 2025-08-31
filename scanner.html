@@ -188,13 +188,13 @@
       const pesan = 
         `Assalamu'alaikum wr.wb.%0A` +
         `Dengan ini kami sampaikan :%0A%0A`+
-        `${encodeURIComponent(scanParts[1])}%0A`+
-        `${encodeURIComponent(scanParts[0])}%0A`+
-        `${encodeURIComponent(scanParts[2])}%0A` +
-        `${encodeURIComponent(kondisi)}%0A` +
+        `Nama : ${encodeURIComponent(scanParts[1])}%0A`+
+        `NIS : ${encodeURIComponent(scanParts[0])}%0A`+
+        `Kelas : ${encodeURIComponent(scanParts[2])}%0A` +
+        `Kondisi : ${encodeURIComponent(kondisi)}%0A` +
         `Alasan: ${encodeURIComponent(alasan)}%0A` +
-        `${timestamp}%0A%0A`+
-        `Terima kasih`;
+        `Waktu : ${timestamp}%0A%0A`+
+        `Ttd : %0A Guru Piket %0A Terima kasih`;
 
       window.open(`https://wa.me/${hp2Clean}?text=${pesan}`, '_blank');
     });
