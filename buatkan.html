@@ -1,1 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Izinku-Buatkan</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root{
+      --card-w:1166px;
+      --card-h:1802px;
+      --primary:#2563eb;
+      --primary-hover:#1d4ed8;
+      --bg:#f9fafb;
+      --text:#111827;
+    }
+    body{
+      font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin:0; padding:20px;
+      background:var(--bg);
+      color:var(--text);
+    }
+    h1{
+      text-align:center;
+      margin-bottom:20px;
+      font-size:1.5rem;
+      color:var(--primary);
+    }
+    .controls{
+      background:white;
+      padding:15px;
+      border-radius:12px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:15px;
+      margin-bottom:20px;
+      justify-content:center;
+    }
+    .controls input[type=file]{
+      padding:6px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      cursor:pointer;
+      background:#f9f9f9;
+    }
+    .controls button{
+      padding:8px 14px;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      background:var(--primary);
+      color:white;
+      font-weight:600;
+      transition:background 0.2s;
+    }
+    .controls button:hover{ background:var(--primary-hover);}
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+      gap:20px;
+      justify-items:center;
+    }
+    .cardWrapper{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:8px;
+    }
+    .card{
+      width:var(--card-w);
+      height:var(--card-h);
+      position:relative;
+      border:2px solid #e5e7eb;     
+      border-radius:14px;        
+      box-shadow:0 4px 10px rgba(0,0,0,0.12);
+      overflow:hidden;
+      background:#fff;
+      transition:transform 0.2s;
+    }
+    .card:hover{ transform:scale(1.03);}
+    .bg{
+      position:absolute;
+      inset:0;
+      background:#fff center/cover no-repeat;
+      opacity:1;
+      border-radius:12px; 
+    }
+    .content{
+      position:relative;
+      z-index:2;
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center; /* tengah vertikal */
+      padding:5px;
+      box-sizing:border-box;
+      justify-content:flex-start; 
+      margin-top:800px; /* tambahkan ini supaya turun */
+    }
+    .qrcode{
+      margin-bottom:30px;
+    }
+    .info{
+      font-size:50px;   /* ukuran teks besar */
+      text-align:center;
+      line-height:1.6;
+      text-transform: uppercase;
+      font-weight:700;
+    }
+    .downloadBtn{
+      padding:10px 16px;
+      font-size:16px;
+      border-radius:8px;
+      border:none;
+      cursor:pointer;
+      background:var(--primary);
+      color:white;
+      font-weight:600;
+      transition:background 0.2s;
+    }
+    .downloadBtn:hover{
+      background:var(--primary-hover);
+    }
+    .progress-container{
+      margin-top:10px;
+      display:none;
+      flex-direction:column;
+      gap:6px;
+      max-width:350px;
+      width:100%;
+    }
+    progress{
+      width:100%;
+      height:20px;
+      border-radius:10px;
+      overflow:hidden;
+    }
+    progress::-webkit-progress-bar{
+      background:#e5e7eb;
+      border-radius:10px;
+    }
+    progress::-webkit-progress-value{
+      background:var(--primary);
+    }
+    #progressText{
+      font-size:14px;
+      text-align:center;
+      font-weight:600;
+    }
+    @media (max-width:600px){
+      body{ padding:10px; }
+      h1{ font-size:1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Generator Kartu Izin</h1>
+  <div class="controls">
+    <label><b>Template:</b> <input type="file" id="bgFile" accept="image/*"></label>
+    <label><b>Excel:</b> <input type="file" id="excelFile" accept=".xlsx, .xls"></label>
+    <button id="downloadAll">Download Semua (PNG)</button>
+    
+    <div class="progress-container" id="progressContainer">
+      <label>Progress Download:</label>
+      <progress id="progressBar" value="0" max="100"></progress>
+      <span id="progressText">0%</span>
+    </div>
+  </div>
+  
+  <div class="cards" id="cards"></div>
 
+<script>
+let bgImageURL = "template.jpg"; 
+let cardData = []; 
+
+document.getElementById("bgFile").addEventListener("change", function(evt){
+  const file = evt.target.files[0];
+  if(file){
+    const reader = new FileReader();
+    reader.onload = e => { bgImageURL = e.target.result; };
+    reader.readAsDataURL(file);
+  }
+});
+
+document.getElementById("excelFile").addEventListener("change", handleFile, false);
+
+function handleFile(e){
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, {type:'array'});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet,{defval:""});
+    cardData = rows; 
+    generateCards(rows);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function generateCards(rows){
+  const container = document.getElementById("cards");
+  container.innerHTML = "";
+  rows.forEach((row,idx)=>{
+    const {nis,nama,kls,hp1,hp2} = row;
+    
+    const wrapper = document.createElement("div");
+    wrapper.className = "cardWrapper";
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const bg = document.createElement("div");
+    bg.className = "bg";
+    bg.style.backgroundImage = `url('${bgImageURL}')`;
+
+    const content = document.createElement("div");
+    content.className = "content";
+
+    const qrDiv = document.createElement("div");
+    qrDiv.className = "qrcode";
+    new QRCode(qrDiv,{
+      text:`${nis},${nama},${kls},${hp1},${hp2}`,
+      width:550,   // qrcode besar
+      height:550
+    });
+
+    const info = document.createElement("div");
+    info.className = "info";
+    info.innerHTML = `${nis}<br>${nama}<br>${kls}`;
+
+    content.appendChild(qrDiv);
+    content.appendChild(info);
+
+    card.appendChild(bg);
+    card.appendChild(content);
+
+    const btn = document.createElement("button");
+    btn.className = "downloadBtn";
+    btn.textContent = "Download Kartu";
+    btn.onclick = ()=>downloadCard(card, `${kls}_${nis}_${nama}.png`);
+
+    wrapper.appendChild(card);
+    wrapper.appendChild(btn);
+    container.appendChild(wrapper);
+  });
+}
+
+function downloadCard(card, filename){
+  return html2canvas(card).then(canvas=>{
+    const link = document.createElement("a");
+    link.download = filename;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  });
+}
+
+document.getElementById("downloadAll").addEventListener("click", async ()=>{
+  const cards = document.querySelectorAll(".card");
+  if(cards.length === 0) return;
+  
+  const progressContainer = document.getElementById("progressContainer");
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
+
+  progressContainer.style.display = "flex";
+  progressBar.value = 0;
+  progressText.textContent = "0%";
+
+  for(let i=0; i<cards.length; i++){
+    const {nis,nama,kls} = cardData[i] || {};
+    const safeName = `${kls||'kelas'}_${nama||'nama'}.png`;
+
+    await downloadCard(cards[i], safeName);
+
+    let percent = Math.round(((i+1)/cards.length)*100);
+    progressBar.value = percent;
+    progressText.textContent = percent + "%";
+  }
+
+  setTimeout(()=>{
+    progressContainer.style.display = "none";
+  }, 1500);
+});
+</script>
+</body>
+</html>
