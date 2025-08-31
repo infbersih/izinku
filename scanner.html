@@ -1,1 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Izinku-Scan</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+    .success { color: green; margin-top: 10px; }
+    .error { color: red; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Kirim</h2>
 
+  <button id="btnSimpan">Simpan Data</button>
+  <div id="result"></div>
+
+  <script>
+    const webhookURL = "https://script.google.com/macros/s/AKfycbyJYotpum3BLRHk9VNOngElWqKEaBV3r_l3BecuiQE_zuqaA5HPuMvWhyse5OOK5kyJ/exec";
+    
+    // Ambil waktu dari perangkat (local time user)
+    function getLocalTimestamp() {
+    const now = new Date();
+    // Format jadi YYYY-MM-DD HH:mm:ss
+    return now.getFullYear() + "-" +
+           String(now.getMonth()+1).padStart(2,"0") + "-" +
+           String(now.getDate()).padStart(2,"0") + " " +
+           String(now.getHours()).padStart(2,"0") + ":" +
+           String(now.getMinutes()).padStart(2,"0") + ":" +
+           String(now.getSeconds()).padStart(2,"0");
+    }
+    
+    document.getElementById("btnSimpan").addEventListener("click", () => {
+      // contoh data dummy
+      const scanParts = ["12345", "Budi", "10A", "08123456789", "08987654321"];
+      const kondisi = "Hadir";
+      const alasan = "ada keperluan keluarga";
+      const timestamp = getLocalTimestamp();  // waktu dari perangkat user
+
+      const resultEl = document.getElementById("result");
+      resultEl.textContent = "⏳ Mengirim data...";
+
+      fetch(webhookURL, {
+        method: "POST",
+        body: new URLSearchParams({
+          timestamp: timestamp,
+          nis: scanParts[0],
+          nama: scanParts[1],
+          kelas: scanParts[2],
+          kondisi: kondisi,
+          alasan: alasan,
+          hp1: scanParts[3],
+          hp2: scanParts[4]
+        }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+      })
+      .then(res => res.json())
+      .then(json => {
+        if (json.status === "OK") {
+          resultEl.textContent = "✅ " + json.message;
+          resultEl.className = "success";
+        } else {
+          resultEl.textContent = "❌ Gagal: " + json.message;
+          resultEl.className = "error";
+        }
+      })
+      .catch(err => {
+        resultEl.textContent = "❌ Error koneksi: " + err;
+        resultEl.className = "error";
+      });
+    });
+  </script>
+</body>
+</html>
