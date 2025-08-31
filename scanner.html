@@ -101,6 +101,18 @@
     const kondisiSelect = document.getElementById('kondisiSelect');
     const alasanInput = document.getElementById('alasanInput');
     const themeToggle = document.getElementById('themeToggle');
+    
+    // Ambil waktu dari perangkat (local time user)
+    function getLocalTimestamp() {
+    const now = new Date();
+    // Format jadi YYYY-MM-DD HH:mm:ss
+    return now.getFullYear() + "-" +
+           String(now.getMonth()+1).padStart(2,"0") + "-" +
+           String(now.getDate()).padStart(2,"0") + " " +
+           String(now.getHours()).padStart(2,"0") + ":" +
+           String(now.getMinutes()).padStart(2,"0") + ":" +
+           String(now.getSeconds()).padStart(2,"0");
+    }
 
     let scanParts = [];
     const webhookURL = "https://script.google.com/macros/s/AKfycbyJYotpum3BLRHk9VNOngElWqKEaBV3r_l3BecuiQE_zuqaA5HPuMvWhyse5OOK5kyJ/exec"; // Ganti dengan URL Google Apps Script Web App
@@ -156,7 +168,7 @@
       }
       const kondisi = kondisiSelect.value;
       const alasan = alasanInput.value.trim() || "-";
-      const timestamp = new Date().toLocaleTimeString('id-ID', { hour12: false });
+      const timestamp = getLocalTimestamp();  // waktu dari perangkat user
 
       // Simpan ke Google Sheets
       fetch(webhookURL, {
