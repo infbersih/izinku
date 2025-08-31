@@ -13,8 +13,20 @@
       margin: 0;
       min-height: 100vh;
       background: linear-gradient(135deg, #a8ffb0, #d9a8ff);
+      transition: background 0.3s, color 0.3s;
     }
-    h2 { color: #333; text-shadow: 1px 1px 2px rgba(255,255,255,0.6); }
+    body.dark {
+      background: linear-gradient(135deg, #222, #555);
+      color: #eee;
+    }
+    h2 {
+      color: #333;
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.6);
+    }
+    body.dark h2 {
+      color: #fff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+    }
     #result { 
       font-size: 1.1em; 
       margin-top: 10px; 
@@ -24,9 +36,12 @@
       border-radius: 8px;
       max-width: 95%;
       word-wrap: break-word;
-      text-align: left;
     }
-    select, #sendBtn, #alasanInput {
+    body.dark #result {
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+    }
+    select, #sendBtn, #themeToggle {
       margin-top: 12px;
       padding: 8px;
       font-size: 1em;
@@ -41,6 +56,16 @@
       box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     }
     #sendBtn:hover { background-color: darkgreen; }
+
+    #themeToggle {
+      background-color: #444;
+      color: #fff;
+      cursor: pointer;
+    }
+    body.dark #themeToggle {
+      background-color: #ddd;
+      color: #000;
+    }
     #reader {
       width: 100%;
       max-width: 320px;
@@ -50,6 +75,7 @@
 </head>
 <body>
   <h2>Scan Kartu Absensi</h2>
+  <button id="themeToggle">🌙 Gelap/Terang ☀️</button>
   <div id="reader"></div>
   <div id="result">Hasil scan akan muncul di sini</div>
   
@@ -61,9 +87,9 @@
       <option value="Pulang">Pulang</option>
     </select>
   </div>
-
+  
   <div>
-    <input type="text" id="alasanInput" placeholder="Tuliskan alasan..." style="display:none; width:80%;">
+    <input type="text" id="alasanInput" placeholder="Tulis alasan..." style="display:none; margin-top:10px; padding:8px; border-radius:6px; width:90%;">
   </div>
   
   <br>
@@ -74,30 +100,41 @@
     const sendBtn = document.getElementById('sendBtn');
     const kondisiSelect = document.getElementById('kondisiSelect');
     const alasanInput = document.getElementById('alasanInput');
+    const themeToggle = document.getElementById('themeToggle');
+
     let scanParts = [];
-    const webhookURL = "https://script.google.com/macros/s/AKfycbyJYotpum3BLRHk9VNOngElWqKEaBV3r_l3BecuiQE_zuqaA5HPuMvWhyse5OOK5kyJ/exec"; 
+    const webhookURL = "https://script.google.com/macros/s/AKfycbyJYotpum3BLRHk9VNOngElWqKEaBV3r_l3BecuiQE_zuqaA5HPuMvWhyse5OOK5kyJ/exec"; // Ganti dengan URL Google Apps Script Web App
+
+    // === Load tema terakhir dari localStorage ===
+    if (localStorage.getItem("theme") === "dark") {
+      document.body.classList.add("dark");
+    }
+
+    // === Switch tema dan simpan ke localStorage ===
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+    });
 
     function onScanSuccess(decodedText) {
       scanParts = decodedText.split(",");
       if (scanParts.length < 5) {
         resultEl.textContent = "Format QR Code tidak valid!";
         kondisiSelect.style.display = 'none';
-        alasanInput.style.display = 'none';
         sendBtn.style.display = 'none';
+        alasanInput.style.display = 'none';
         return;
       }
-      // tampil berurutan ke bawah
       resultEl.innerHTML = 
         `NIS   : ${scanParts[0]}<br>` +
         `Nama  : ${scanParts[1]}<br>` +
         `Kelas : ${scanParts[2]}`;
-      
       kondisiSelect.style.display = 'inline-block';
       alasanInput.style.display = 'inline-block';
       sendBtn.style.display = 'inline-block';
     }
 
-    // Mulai kamera
+    // Mulai kamera (pilih belakang kalau ada)
     const html5QrCode = new Html5Qrcode("reader");
     Html5Qrcode.getCameras().then(cameras => {
       if (cameras && cameras.length) {
@@ -118,43 +155,33 @@
         return;
       }
       const kondisi = kondisiSelect.value;
-      const alasan = alasanInput.value || "-";
-      const timestamp = new Date().toLocaleString('id-ID', { hour12: false });
+      const alasan = alasanInput.value.trim() || "-";
+      const timestamp = new Date().toLocaleTimeString('id-ID', { hour12: false });
 
       // Simpan ke Google Sheets
-      const formData = new URLSearchParams();
-      formData.append("timestamp", timestamp);
-      formData.append("kondisi", kondisi);
-      formData.append("alasan", alasan);
-      formData.append("nis", scanParts[0]);
-      formData.append("nama", scanParts[1]);
-      formData.append("kelas", scanParts[2]);
-      formData.append("hp1", scanParts[3]);
-      formData.append("hp2", scanParts[4]);
-
       fetch(webhookURL, {
         method: "POST",
-        body: formData.toString(),
+        body: `timestamp=${encodeURIComponent(timestamp)}&kondisi=${encodeURIComponent(kondisi)}&alasan=${encodeURIComponent(alasan)}&nis=${encodeURIComponent(scanParts[0])}&nama=${encodeURIComponent(scanParts[1])}&kelas=${encodeURIComponent(scanParts[2])}&hp1=${encodeURIComponent(scanParts[3])}&hp2=${encodeURIComponent(scanParts[4])}`,
         headers: { "Content-Type": "application/x-www-form-urlencoded" }
       }).then(res => {
-        if(res.ok){
-          alert("✅ Data berhasil dikirim ke Spreadsheet!");
+        if (res.ok) {
+          alert("✅ Data berhasil dikirim dan disimpan!");
         } else {
-          alert("⚠️ Gagal simpan ke Spreadsheet!");
+          alert("❌ Gagal menyimpan data!");
         }
-      }).catch(err => alert("❌ Error: " + err));
+      }).catch(err => alert("⚠️ Error koneksi: " + err));
 
       // Pesan WA
       const hp2Clean = scanParts[4].replace(/\D/g, '');
       const pesan = 
         `Assalamu'alaikum wr.wb.%0A` +
         `Dengan ini kami sampaikan :%0A%0A`+
-        `Nama : ${encodeURIComponent(scanParts[1])}%0A`+
-        `NIS : ${encodeURIComponent(scanParts[0])}%0A`+
-        `Kelas : ${encodeURIComponent(scanParts[2])}%0A` +
-        `Kondisi : ${encodeURIComponent(kondisi)}%0A` +
-        `Alasan : ${encodeURIComponent(alasan)}%0A` +
-        `Waktu : ${encodeURIComponent(timestamp)}%0A%0A`+
+        `${encodeURIComponent(scanParts[1])}%0A`+
+        `${encodeURIComponent(scanParts[0])}%0A`+
+        `${encodeURIComponent(scanParts[2])}%0A` +
+        `${encodeURIComponent(kondisi)}%0A` +
+        `Alasan: ${encodeURIComponent(alasan)}%0A` +
+        `${timestamp}%0A%0A`+
         `Terima kasih`;
 
       window.open(`https://wa.me/${hp2Clean}?text=${pesan}`, '_blank');
