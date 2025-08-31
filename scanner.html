@@ -86,7 +86,9 @@
         return;
       }
       resultEl.textContent = 
-        `NIS: ${scanParts[0]} | Nama: ${scanParts[1]} | Kelas: ${scanParts[2]} | HP1: ${scanParts[3]} | HP2: ${scanParts[4]}`;
+        `${scanParts[0]} <br>
+         ${scanParts[1]} <br>
+         ${scanParts[2]}`;
       kondisiSelect.style.display = 'inline-block';
       alasanInput.style.display = 'inline-block';
       sendBtn.style.display = 'inline-block';
