@@ -24,6 +24,7 @@
       border-radius: 8px;
       max-width: 95%;
       word-wrap: break-word;
+      text-align: left;
     }
     select, #sendBtn, #alasanInput {
       margin-top: 12px;
@@ -85,16 +86,18 @@
         sendBtn.style.display = 'none';
         return;
       }
-      resultEl.textContent = 
-        `${scanParts[0]}' '<br>
-        '${scanParts[1]}' '<br>
-         ${scanParts[2]}`;
+      // tampil berurutan ke bawah
+      resultEl.innerHTML = 
+        `NIS   : ${scanParts[0]}<br>` +
+        `Nama  : ${scanParts[1]}<br>` +
+        `Kelas : ${scanParts[2]}`;
+      
       kondisiSelect.style.display = 'inline-block';
       alasanInput.style.display = 'inline-block';
       sendBtn.style.display = 'inline-block';
     }
 
-    // Mulai kamera (pilih belakang kalau ada)
+    // Mulai kamera
     const html5QrCode = new Html5Qrcode("reader");
     Html5Qrcode.getCameras().then(cameras => {
       if (cameras && cameras.length) {
